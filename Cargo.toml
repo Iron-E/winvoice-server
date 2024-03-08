@@ -98,12 +98,12 @@ bin = [
 	'tracing',
 	'tracing-appender',
 	'tracing-subscriber',
-	'watchman_client',
 	'winvoice-adapter',
 ]
-default = ['postgres']
+default = ['postgres', 'watchman']
 postgres = ['axum-login/postgres', 'bin', 'winvoice-adapter-postgres', 'sqlx/postgres']
 test-postgres = ['postgres', 'winvoice-adapter-postgres/test-utils']
+watchman = ['watchman_client']
 
 [patch.crates-io.sqlx]
 git = "https://github.com/Iron-E/sqlx"

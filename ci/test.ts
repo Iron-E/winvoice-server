@@ -51,8 +51,12 @@ enqueue(async (client, inject) => {
 		.withEnvVariable('DATABASE_URL', 'postgresql://user:password@db/winvoice-server')
 		.withEnvVariable('RUSTFLAGS', "-C target-feature=-crt-static")
 		.withExecCargoHack('test', {
-			commandArgs: ['--lib', '--', '--test-threads', '1'],
-			hackArgs,
+			// NOTE: tests *must* be run one at a time as they create and destroy the test roles,
+			//       which would cause duplicate keys if done at the same time.
+			commandArgs: ['--', '--test-threads', '1'],
+
+			// FIXME: `watchman` not available on alpine, so just skip the for now…
+			hackArgs: [...hackArgs, '--include-features', 'test-postgres'],
 		})
 		.stdout()
 		;

@@ -3,10 +3,7 @@ mod command;
 mod postgres;
 
 use core::time::Duration;
-use std::{
-	net::SocketAddr,
-	path::{Path, PathBuf},
-};
+use std::{net::SocketAddr, path::PathBuf};
 
 use axum::http::HeaderValue;
 use axum_server::tls_rustls::RustlsConfig;
@@ -18,20 +15,26 @@ use clap::{
 use command::Command;
 use futures::TryFutureExt;
 use tokio::fs;
-use tracing::{instrument, level_filters::LevelFilter, Instrument};
+use tracing::level_filters::LevelFilter;
 use tracing_appender::non_blocking::WorkerGuard;
-use watchman_client::{
-	expr::{Expr, NameTerm},
-	fields::NameOnly,
-	pdu::SubscribeRequest,
-	CanonicalPath,
-	Connector,
-	SubscriptionData,
+#[cfg(feature = "watchman")]
+use {
+	crate::lock::Lock,
+	std::path::Path,
+	tracing::{instrument, Instrument},
+	watchman_client::{
+		expr::{Expr, NameTerm},
+		fields::NameOnly,
+		pdu::SubscribeRequest,
+		CanonicalPath,
+		Connector,
+		SubscriptionData,
+	},
 };
 
 use crate::{
 	dyn_result::{DynError, DynResult},
-	lock::{self, Lock},
+	lock,
 	utils,
 };
 
@@ -165,6 +168,8 @@ impl Args
 		)?;
 
 		let origins = origins_file.lines().into_iter().map(HeaderValue::from_str).collect::<Result<Vec<_>, _>>()?;
+
+		#[cfg(feature = "watchman")]
 		if let Err(e) = init_watchman(permissions.clone(), model_path, policy_path).await
 		{
 			tracing::error!("Failed to enable hot-reloading permissions: {e}");
@@ -225,7 +230,8 @@ fn init_tracing(log_level: LevelFilter, log_dir: Option<PathBuf>, log_rotation: 
 ///
 /// This allows [`winvoice_server`]'s permissions to be hot-reloaded while the server is
 /// running.
-#[instrument(level = "trace", skip(permissions))]
+#[cfg_attr(feature = "watchman", instrument(level = "trace", skip(permissions)))]
+#[cfg(feature = "watchman")]
 pub(crate) async fn init_watchman(
 	permissions: Lock<Enforcer>,
 	model_path: Option<&'static str>,
@@ -305,7 +311,7 @@ pub(crate) async fn init_watchman(
 }
 
 #[allow(clippy::std_instead_of_core, clippy::str_to_string)]
-#[cfg(test)]
+#[cfg(all(feature = "watchman", test))]
 mod tests
 {
 	use std::{fs::OpenOptions, io::Write};
