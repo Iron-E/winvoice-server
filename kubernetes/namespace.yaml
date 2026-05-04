@@ -1,6 +1,0 @@
-# https://github.com/cloudnative-pg/cloudnative-pg/blob/main/docs/src/quickstart.md
-apiVersion: 'v1'
-kind: 'Namespace'
-metadata:
-  name: 'example'
----
